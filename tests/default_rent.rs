@@ -2,12 +2,13 @@ use mysql_rent::Rent;
 
 #[tokio::test]
 async fn should_work_with_no_params() {
-    let _sut = Rent::new().await.unwrap();
+    let sut = Rent::new().await.unwrap();
+    println!("connection URL: {}", sut.mysql_url());
 }
 
 #[tokio::test]
 async fn should_work_with_options() {
-    let _sut = Rent::builder()
+    let sut = Rent::builder()
         .container_name("other-container")
         .database("contacts")
         .local_port(3307u16)
@@ -15,4 +16,5 @@ async fn should_work_with_options() {
         .rent()
         .await
         .unwrap();
+    println!("connection URL: {}", sut.mysql_url());
 }

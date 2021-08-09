@@ -65,8 +65,8 @@ impl RentBuilder {
         self
     }
 
-    pub fn local_port(&mut self, value: impl Into<u16>) -> &mut Self {
-        self.local_port = Some(value.into());
+    pub fn local_port(&mut self, value: u16) -> &mut Self {
+        self.local_port = Some(value);
         self
     }
 
@@ -97,17 +97,19 @@ impl RentBuilder {
             .arg("-e")
             .arg(format!("MYSQL_ROOT_PASSWORD={}", result.password))
             .arg(&result.image)
-            .stdout(Stdio::piped());
+            .stdout(Stdio::piped())
+            ;
 
         log::debug!("Executing command: {:?}", command);
 
-        let child = command.spawn().expect("Failed to execute docker command");
+        let output = command
+            .spawn()
+            .expect("Failed to execute docker command")
+            .wait_with_output()
+            .map_err(|e| e.to_string())?;
 
-        // TODO: Handle exist status and stderr to check for errors
-        let stdout = child.stdout.unwrap();
-        let reader = std::io::BufReader::new(stdout);
-
-        result.container_id = Some(reader.lines().next().unwrap().unwrap());
+        // TODO: Get rid of unwrap and expect calls
+        result.container_id = Some(output.stdout.lines().next().unwrap().unwrap());
 
         result.wait_for_container();
 
