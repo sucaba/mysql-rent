@@ -2,10 +2,8 @@ mod custom_error;
 
 pub use custom_error::*;
 use mysql_async::{prelude::Queryable, Conn, Params, Value};
-use std::{
-    io::BufRead,
-    process::{Command, Stdio},
-};
+use std::{io::BufRead, process::Stdio};
+use tokio::process::Command;
 
 pub struct Rent {
     db: String,
@@ -96,6 +94,7 @@ impl RentBuilder {
             .spawn()
             .expect("Failed to execute docker command")
             .wait_with_output()
+            .await
             .map_err(|e| e.to_string())?;
 
         // TODO: Get rid of unwrap and expect calls
@@ -125,7 +124,7 @@ impl RentBuilder {
                 .clone()
                 .unwrap_or_else(|| "4NRRKHMjd6SU83Ce".into()),
             local_port: self.local_port.clone().unwrap_or(3306),
-            image: self.image.clone().unwrap_or_else(|| "mysql:5.7.31".into()),
+            image: self.image.clone().unwrap_or_else(|| "mysql:latest".into()),
             container_name: self.container_name.clone().unwrap_or_else(unique_string),
             avoid_cleanup: self.avoid_cleanup.clone().unwrap_or(false),
             sql_scripts: self.sql_scripts.clone(),
@@ -155,6 +154,7 @@ impl Rent {
     }
 
     fn wait_for_container(&mut self) {
+        // TODO: async wait
         wait::wait(
             &mut wait::sleeper::new(),
             &wait::Config {

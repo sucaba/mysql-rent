@@ -7,7 +7,7 @@ edition = "2018"
 log = "0.4.6"
 wait = { git = "https://github.com/ufoscout/docker-compose-wait" }
 mysql_async = "0.28.0"
-tokio = { version = "1.9.0", features = [ "io-util", "fs", "net", "time", "rt" ] } 
+tokio = { version = "1.9.0", features = [ "io-util", "fs", "net", "time", "rt", "process" ] } 
 uuid = { version = "0.8.2", features = ["v4"] }
 
 [dev-dependencies.tokio]
