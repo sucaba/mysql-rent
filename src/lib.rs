@@ -1,5 +1,4 @@
 mod custom_error;
-mod time;
 
 pub use custom_error::*;
 use mysql_async::{prelude::Queryable, Conn, Params, Value};
@@ -7,7 +6,6 @@ use std::{
     io::BufRead,
     process::{Command, Stdio},
 };
-pub use time::*;
 
 pub struct Rent {
     db: String,
@@ -17,24 +15,7 @@ pub struct Rent {
     container_name: String,
     container_id: Option<String>,
     avoid_cleanup: bool,
-    sql_scripts: SqlScripts,
-}
-
-#[derive(Clone)]
-pub struct SqlScripts {
-    pub(self) scripts: Vec<String>,
-}
-
-impl SqlScripts {
-    pub fn new() -> Self {
-        Self {
-            scripts: Vec::new(),
-        }
-    }
-
-    pub fn add(&mut self, value: String) {
-        self.scripts.push(value);
-    }
+    sql_scripts: Vec<String>,
 }
 
 pub struct RentBuilder {
@@ -44,7 +25,7 @@ pub struct RentBuilder {
     image: Option<String>,
     container_name: Option<String>,
     avoid_cleanup: Option<bool>,
-    sql_scripts: SqlScripts,
+    sql_scripts: Vec<String>,
 }
 
 impl RentBuilder {
@@ -56,7 +37,7 @@ impl RentBuilder {
             image: None,
             container_name: None,
             avoid_cleanup: None,
-            sql_scripts: SqlScripts::new(),
+            sql_scripts: Vec::new(),
         }
     }
 
@@ -80,6 +61,16 @@ impl RentBuilder {
         self
     }
 
+    pub fn script(&mut self, value: impl Into<String>) -> &mut Self {
+        self.sql_scripts.push(value.into());
+        self
+    }
+
+    pub fn version(&mut self, value: impl Into<String>) -> &mut Self {
+        self.image = Some(format!("mysql:{}", value.into()));
+        self
+    }
+
     pub async fn rent(&mut self) -> Result<Rent, String> {
         let mut result = self.create_rent();
 
@@ -97,8 +88,7 @@ impl RentBuilder {
             .arg("-e")
             .arg(format!("MYSQL_ROOT_PASSWORD={}", result.password))
             .arg(&result.image)
-            .stdout(Stdio::piped())
-            ;
+            .stdout(Stdio::piped());
 
         log::debug!("Executing command: {:?}", command);
 
@@ -117,7 +107,7 @@ impl RentBuilder {
             .await
             .map_err(|e| format!("failed to wait for connection {}", e))?;
 
-        for (i, script) in result.sql_scripts.scripts.iter().enumerate() {
+        for (i, script) in result.sql_scripts.iter().enumerate() {
             let _r: Vec<Value> = connection
                 .exec(&*script, Params::Empty)
                 .await
@@ -136,7 +126,7 @@ impl RentBuilder {
                 .unwrap_or_else(|| "4NRRKHMjd6SU83Ce".into()),
             local_port: self.local_port.clone().unwrap_or(3306),
             image: self.image.clone().unwrap_or_else(|| "mysql:5.7.31".into()),
-            container_name: self.container_name.clone().unwrap_or_else(random_string),
+            container_name: self.container_name.clone().unwrap_or_else(unique_string),
             avoid_cleanup: self.avoid_cleanup.clone().unwrap_or(false),
             sql_scripts: self.sql_scripts.clone(),
             container_id: None,
@@ -226,7 +216,6 @@ impl Drop for Rent {
     }
 }
 
-// TODO: Make it random
-fn random_string() -> String {
-    "any-1231232".into()
+fn unique_string() -> String {
+    uuid::Uuid::new_v4().to_string()
 }

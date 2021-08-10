@@ -9,9 +9,8 @@ async fn should_work_with_no_params() {
 #[tokio::test]
 async fn should_work_with_options() {
     let sut = Rent::builder()
-        .container_name("other-container")
         .database("contacts")
-        .local_port(3307u16)
+        .local_port(3307)
         .root_password("chupacabra111")
         .rent()
         .await
