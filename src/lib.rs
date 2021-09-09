@@ -70,7 +70,7 @@ impl RentBuilder {
     }
 
     pub async fn rent(&mut self) -> Result<Rent, String> {
-        let mut result = self.create_rent();
+        let mut result = self.create_rent()?;
 
         let mut command = Command::new("docker");
 
@@ -116,8 +116,8 @@ impl RentBuilder {
         Ok(result)
     }
 
-    fn create_rent(&mut self) -> Rent {
-        Rent {
+    fn create_rent(&mut self) -> Result<Rent, String> {
+        Ok(Rent {
             db: self.db.take().unwrap_or_else(|| "oc3".into()),
             password: self
                 .password
@@ -129,7 +129,7 @@ impl RentBuilder {
             avoid_cleanup: self.avoid_cleanup.clone().unwrap_or(false),
             sql_scripts: self.sql_scripts.clone(),
             container_id: None,
-        }
+        })
     }
 }
 
@@ -203,15 +203,28 @@ impl Drop for Rent {
             return;
         }
 
-        if let Some(id) = &self.container_id {
-            Command::new("docker")
+        if let Some(id) = self.container_id.take() {
+            let exit_code = std::process::Command::new("docker")
                 .arg("rm")
                 .arg("-f")
                 .arg("-v") // Also remove volumes
-                .arg(id)
+                .arg(&id)
                 .stdout(Stdio::piped())
                 .spawn()
-                .expect("Failed to execute docker command");
+                .expect("Failed to execute docker command")
+                .wait();
+
+            match exit_code {
+                Ok(x) if x.success() => {
+                    log::debug!("container '{}' dropped", id);
+                }
+                Ok(x) => {
+                    log::debug!("container '{}' dropped or not with status {}", id, x);
+                }
+                Err(e) => {
+                    log::error!("failure dropping container '{}'. {}", id, e);
+                }
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ use mysql_rent::Rent;
 async fn should_work_with_no_params() {
     let sut = Rent::new().await.unwrap();
     println!("connection URL: {}", sut.mysql_url());
+    drop(sut);
 }
 
 #[tokio::test]
@@ -16,4 +17,5 @@ async fn should_work_with_options() {
         .await
         .unwrap();
     println!("connection URL: {}", sut.mysql_url());
+    drop(sut);
 }
