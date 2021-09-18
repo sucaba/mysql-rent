@@ -118,7 +118,7 @@ impl RentBuilder {
 
     fn create_rent(&mut self) -> Result<Rent, String> {
         Ok(Rent {
-            db: self.db.take().unwrap_or_else(|| "oc3".into()),
+            db: self.db.take().unwrap_or_else(|| "rent1".into()),
             password: self
                 .password
                 .clone()
