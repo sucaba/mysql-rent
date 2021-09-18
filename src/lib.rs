@@ -136,7 +136,7 @@ impl RentBuilder {
 impl Rent {
     pub fn mysql_url(&self) -> String {
         format!(
-            "mysql://{0}:{1}@127.0.0.1:{2}/{3}",
+            "mysql://{0}:{1}@localhost:{2}/{3}",
             "root", &self.password, self.local_port, &self.db
         )
     }
